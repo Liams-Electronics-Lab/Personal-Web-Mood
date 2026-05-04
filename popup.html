@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Personal Web Mood</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="title" class="marquee" style="font-weight:700;margin-bottom:8px">
+        <div id="titleInner" class="marquee-inner">—</div>
+      </div>
+      <div id="emojis" class="row">
+        <button class="emoji" data-rating="1" title="Angry"><img src="svg/angry.svg" alt="angry"/></button>
+        <button class="emoji" data-rating="2" title="Sad"><img src="svg/sad.svg" alt="sad"/></button>
+        <button class="emoji" data-rating="3" title="Neutral"><img src="svg/ok.svg" alt="neutral"/></button>
+        <button class="emoji" data-rating="4" title="Happy"><img src="svg/happy.svg" alt="happy"/></button>
+        <button class="emoji" data-rating="5" title="Very happy"><img src="svg/very_happy.svg" alt="very happy"/></button>
+      </div>
+      <div id="status" class="status"></div>
+      <div id="recentList" class="recent-list" aria-live="polite"></div>
+      <div class="actions">
+        <button id="openMap">View Map</button>
+        <button id="options">Settings</button>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

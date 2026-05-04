@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Personal Web Mood",
+  "version": "0.1.0",
+  "description": "Rate how websites make you feel and visualize impact over time.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["svg/*.svg"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "chrome_url_overrides": {
+    "newtab": "start.html"
+  }
+}

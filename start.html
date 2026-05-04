@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Personal Web Mood — Map</title>
+    <style>
+      /* Base Variables & Modern Font */
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      
+      :root {
+        /* Original mood colors preserved for JS functionality */
+        --s1: #e53935; --s2: #ff8a00; --s3: #ffeb3b; --s4: #4caf50; --s5: #00c853;
+        
+        /* Modern Glassmorphism variables */
+        --glass-bg: rgba(255, 255, 255, 0.65);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        --text-main: #1e293b;
+      }
+
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        /* Force body to be exactly the window height */
+        height: 100vh; 
+        width: 100vw;
+        overflow: hidden; /* Prevent global scrollbars */
+        background: linear-gradient(135deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5));
+        background-attachment: fixed;
+        color: var(--text-main);
+      }
+
+      /* Modern Header */
+      header {
+        flex: 0 0 auto; /* Do not shrink or grow */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--glass-border);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+      }
+
+      header strong {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      button {
+        font-family: inherit;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.6);
+        background: rgba(255, 255, 255, 0.5);
+        color: var(--text-main);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(4px);
+      }
+
+      button:hover {
+        background: rgba(255, 255, 255, 0.8);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      }
+
+      /* Sleek Search Bar */
+      #searchBar {
+        flex: 0 0 auto;
+        display: flex;
+        justify-content: center;
+        padding: 16px 12px;
+      }
+
+      #newtabSearchForm {
+        width: min(600px, 90%);
+        display: flex;
+        align-items: center;
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 50px;
+        padding: 6px 6px 6px 20px;
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      #newtabSearchForm:focus-within {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        background: rgba(255, 255, 255, 0.85);
+      }
+
+      #searchQuery {
+        flex: 1;
+        background: transparent;
+        border: none;
+        font-size: 16px;
+        outline: none;
+        color: var(--text-main);
+      }
+
+      #searchQuery::placeholder {
+        color: #64748b;
+      }
+
+      #newtabSearchForm button {
+        padding: 10px 24px;
+        border-radius: 40px;
+        border: none;
+        background: #1e293b;
+        color: #fff;
+        font-weight: 600;
+      }
+
+      #newtabSearchForm button:hover {
+        background: #0f172a;
+      }
+
+      /* Main Container & Sidebar */
+      #container {
+        display: flex;
+        flex: 1; /* Stretch to fill remaining height */
+        min-height: 0; /* Important for flex children to allow shrinking */
+        margin: 0 24px 16px 24px;
+        gap: 24px;
+        overflow: hidden; /* Keep the map logic contained */
+      }
+
+      #left {
+        flex: 0 0 320px;
+        padding: 20px;
+        box-sizing: border-box;
+        overflow-y: auto; /* Allow list to scroll if too long */
+        border-radius: 24px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+        min-width: 180px;
+        max-width: 40%;
+      }
+
+      /* Sidebar List Items */
+      .list-item {
+        padding: 12px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        cursor: pointer;
+        position: relative;
+        border-radius: 12px;
+        transition: background 0.2s;
+      }
+      
+      .list-item:hover {
+        background: rgba(255,255,255,0.4);
+      }
+
+      .list-item .remove-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.05);
+        border: 0;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        cursor: pointer;
+        color: #64748b;
+        transition: all 0.2s;
+        padding: 0;
+      }
+
+      .list-item .remove-btn:hover {
+        background: #ef4444;
+        color: #fff;
+      }
+
+      .list-item .block-site-checkbox {
+        margin-left: 12px;
+        accent-color: #1e293b;
+      }
+
+      #details {
+        padding: 8px 0;
+        overflow: auto;
+        font-size: 0.95rem;
+      }
+
+      /* Canvas Wrap */
+      #canvasWrap {
+        flex: 1;
+        position: relative;
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 24px;
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+        overflow: hidden;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      /* Legend */
+      #legend {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      #legendBar {
+        width: 60%;
+        max-width: 600px;
+        height: 12px;
+        border-radius: 12px;
+        background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5));
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        border: 2px solid rgba(255,255,255,0.8);
+      }
+
+      #legendLabels {
+        width: 60%;
+        max-width: 600px;
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        pointer-events: auto;
+      }
+
+      /* Footer */
+      footer {
+        flex: 0 0 auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 24px;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-top: 1px solid var(--glass-border);
+        color: var(--text-main);
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+      
+      .footer-icons {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .footer-icons a {
+        color: var(--text-main);
+        display: inline-flex;
+        transition: transform 0.2s ease, color 0.2s ease;
+      }
+
+      .footer-icons a:hover {
+        transform: translateY(-2px);
+      }
+      
+      .footer-icons a.github-link:hover { color: #000; }
+      .footer-icons a.youtube-link:hover { color: #ff0000; }
+
+      .footer-icons svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+
+      /* Responsive Adjustments */
+      @media (max-width: 900px) {
+        #container {
+          flex-direction: column;
+          margin: 0 16px 12px 16px;
+          overflow-y: auto; /* Let the container scroll on mobile */
+        }
+        #left {
+          flex: 0 0 auto;
+          width: 100%;
+          max-width: 100%;
+          max-height: 30vh;
+        }
+        #canvasWrap {
+          flex: 0 0 50vh; /* Fixed height for canvas on mobile */
+          min-height: 300px;
+        }
+        #legendBar, #legendLabels { width: 90%; }
+        .pwm-tooltip { left: 8px; right: 8px; max-width: calc(100% - 16px); }
+      }
+
+      /* Tooltip Logic (Original JS dependent classes preserved) */
+      .pwm-tooltip {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: var(--text-main);
+        padding: 12px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        border: 1px solid var(--glass-border);
+        width: 1024px;
+        max-width: calc(100% - 24px);
+        font-size: 13px;
+        pointer-events: auto;
+        opacity: 0;
+        transform: translateY(0);
+        transition: opacity .12s, transform .12s, left .18s cubic-bezier(.2,.9,.2,1), top .18s cubic-bezier(.2,.9,.2,1);
+        will-change: left, top, transform;
+        z-index: 1200;
+        --arrow-size: 8px;
+        --pointer-left: 50%;
+        --pointer-top: 50%;
+      }
+      .pwm-tooltip.show { opacity: 1; transform: translateY(-6px); }
+      .pwm-tooltip.placement-flip { animation: placementFlip .22s cubic-bezier(.2,.9,.2,1); }
+      @keyframes placementFlip { 
+        0% { transform: translateY(-8px) scale(.995); opacity: .92; } 
+        100% { transform: translateY(0) scale(1); opacity: 1; } 
+      }
+      .pwm-tooltip ul { list-style: none; margin: 0; padding: 0; }
+      .pwm-tooltip li { padding: 8px 0; border-bottom: 1px dashed rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; }
+      .pwm-tooltip li:last-child { border-bottom: 0; }
+      .pwm-tooltip .ts { color: #64748b; font-size: 11px; margin-left: 8px; }
+      .new-badge { background: #e53935; color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 12px; margin-left: 8px; font-weight: 700; }
+      
+      /* Tooltip Marquee */
+      .marquee-small { overflow: hidden; white-space: nowrap; width: 100%; }
+      .marquee-inner-small { display: inline-block; position: relative; padding-left: 6px; left: 0; }
+      .marquee-small.marquee-needed .marquee-inner-small { left: 100%; animation: marqueeSmall 8s linear infinite; }
+      .marquee-small:hover .marquee-inner-small { animation-play-state: paused; }
+      @keyframes marqueeSmall { 0% { left: 100%; } 100% { left: -100%; } }
+
+      /* Tooltip Arrows */
+      .pwm-tooltip.top::after { content: ""; position: absolute; left: var(--pointer-left,50%); transform: translateX(-50%); bottom: calc(-1 * var(--arrow-size)); border-width: var(--arrow-size) var(--arrow-size) 0 var(--arrow-size); border-style: solid; border-color: rgba(255,255,255,0.95) transparent transparent transparent; }
+      .pwm-tooltip.bottom::after { content: ""; position: absolute; left: var(--pointer-left,50%); transform: translateX(-50%); top: calc(-1 * var(--arrow-size)); border-width: 0 var(--arrow-size) var(--arrow-size) var(--arrow-size); border-style: solid; border-color: transparent transparent rgba(255,255,255,0.95) transparent; }
+      .pwm-tooltip.right::after { content: ""; position: absolute; left: 100%; top: var(--pointer-top,50%); transform: translateY(-50%); border-width: var(--arrow-size) 0 var(--arrow-size) var(--arrow-size); border-style: solid; border-color: transparent transparent transparent rgba(255,255,255,0.95); }
+      .pwm-tooltip.left::after { content: ""; position: absolute; right: 100%; top: var(--pointer-top,50%); transform: translateY(-50%); border-width: var(--arrow-size) var(--arrow-size) var(--arrow-size) 0; border-style: solid; border-color: transparent rgba(255,255,255,0.95) transparent transparent; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Personal Web Mood</strong>
+      <div class="header-actions">
+        <button id="toggleNewtabBtn">Enable map on new tab</button>
+        <button id="openSettingsBtn">Settings</button>
+      </div>
+    </header>
+    
+    <div id="searchBar">
+      <form id="newtabSearchForm" action="#" autocomplete="off">
+        <input id="searchQuery" type="search" placeholder="Search the web" />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+    
+    <div id="container">
+      <div id="left">
+        <div id="domainList"></div>
+        <div id="details"></div>
+      </div>
+      <div id="canvasWrap">
+        <canvas id="mapCanvas"></canvas>
+        
+        <div id="legend">
+          <div id="legendBar"></div>
+          <div id="legendLabels">
+            <span>Bad</span>
+            <span>Very happy</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      <span>made by Liam's Electronics Lab</span>
+      <div class="footer-icons">
+        <a class="github-link" href="https://github.com/Liams-Electronics-Lab" target="_blank" rel="noopener noreferrer" title="GitHub">
+          <svg viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+        <a class="youtube-link" href="https://www.youtube.com/@Slot1Gamer/videos" target="_blank" rel="noopener noreferrer" title="YouTube">
+          <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        </a>
+      </div>
+    </footer>
+    
+    <script src="map.js"></script>
+  </body>
+</html>
